@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import analizator as a 
 
 WINDOW_SIZE = 1
-LEARNING_RATE = 0.001    # Niższe = bezpieczniejsze
+LEARNING_RATE = 0.001 
 EPOCHS = 1000             
 
 FEATURE_COLS = [
@@ -31,21 +31,15 @@ def main():
     dane_treningowe = polacz_pliki(pliki_statyczne)
     dane_testowe = pd.read_excel(sciezka_test)
 
-    # 5.0 Filtracja sygnałów
     dane_treningowe = a.usun_grube_bledy(dane_treningowe, FEATURE_COLS)
     dane_testowe = a.usun_grube_bledy(dane_testowe, FEATURE_COLS)
 
     X_train_raw = dane_treningowe[FEATURE_COLS].values
     X_test_raw = dane_testowe[FEATURE_COLS].values
 
-    # Indeksy kolumn z pozycją UWB
     uwb_x_idx = FEATURE_COLS.index("data__coordinates__x")
     uwb_y_idx = FEATURE_COLS.index("data__coordinates__y")
 
-    # =========================================================================
-    # REWOLUCJA: Zamiast przewidywać pozycję, sieć przewiduje BŁĄD (RESZTĘ)!
-    # y = Prawda - Zmierzony UWB
-    # =========================================================================
     y_train_raw = np.column_stack((
         dane_treningowe["reference__x"].values - X_train_raw[:, uwb_x_idx],
         dane_treningowe["reference__y"].values - X_train_raw[:, uwb_y_idx]
@@ -57,7 +51,6 @@ def main():
 
     X_train_scaled, X_test_scaled = a.scale_data(X_train_raw, X_test_raw)
     
-    # Skalowanie samego błedu (targetu)
     y_mean = np.mean(y_train_raw, axis=0)
     y_std = np.std(y_train_raw, axis=0)
     y_std[y_std < 0.1] = 1.0 
