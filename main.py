@@ -4,15 +4,12 @@ import glob as g
 import matplotlib.pyplot as plt
 import analizator as a 
 
-WINDOW_SIZE = 3          
+WINDOW_SIZE = 1
 LEARNING_RATE = 0.001    # Niższe = bezpieczniejsze
 EPOCHS = 1000             
 
 FEATURE_COLS = [
-    "data__tagData__gyro__z",
-    "data__tagData__linearAcceleration__x",
-    "data__tagData__linearAcceleration__y",
-    "data__orientation__yaw",
+
     "data__tagData__pressure",
     "data__coordinates__x",  
     "data__coordinates__y"   
