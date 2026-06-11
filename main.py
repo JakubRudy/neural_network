@@ -83,7 +83,6 @@ def main():
     przewidywany_blad_scaled = model.ruch(X_test)
     przewidywany_blad_raw = przewidywany_blad_scaled * y_std + y_mean
     
-    # Odzyskujemy bazową trasę (odrzucamy pierwsze okna)
     bazowe_uwb_x = X_test_raw[WINDOW_SIZE:, uwb_x_idx]
     bazowe_uwb_y = X_test_raw[WINDOW_SIZE:, uwb_y_idx]
     bazowe_uwb = np.column_stack((bazowe_uwb_x, bazowe_uwb_y))
@@ -92,10 +91,8 @@ def main():
     prawdziwe_referencje_y = dane_testowe["reference__y"].values[WINDOW_SIZE:]
     prawdziwe_referencje = np.column_stack((prawdziwe_referencje_x, prawdziwe_referencje_y))
 
-    # WYNIK FINALNY = UWB + Przewidziany Błąd
     przewidywania_test_raw = bazowe_uwb + przewidywany_blad_raw
 
-    # OBLICZANIE BŁĘDÓW RZECZYWISTYCH W METRACH/CM
     bledy_sieci = a.calculate_errors(prawdziwe_referencje, przewidywania_test_raw)
     bledy_bazowe = a.calculate_errors(prawdziwe_referencje, bazowe_uwb)
 
@@ -109,6 +106,10 @@ def main():
     p_nn = np.arange(len(bledy_sieci)) / (len(bledy_sieci) - 1)
     p_base = np.arange(len(bledy_bazowe)) / (len(bledy_bazowe) - 1)
 
+    # ==============================================
+    # WYKRES 1: Dystrybucja CDF
+    # ==============================================
+
     plt.figure(figsize=(8, 6))
     plt.plot(np.sort(bledy_bazowe), p_base, label="Brak filtra (Surowy UWB)", linestyle="--", color="red")
     plt.plot(np.sort(bledy_sieci), p_nn, label="Korekta Siecią Neuronową", linewidth=2, color="green")
@@ -117,6 +118,55 @@ def main():
     plt.ylabel("Prawdopodobieństwo P(X <= x)")
     plt.grid(True)
     plt.legend()
+    plt.show()
+
+    # ==============================================
+    # WYKRES 2: Odtworzenie trasy robota na płaszczyźnie 2D
+    # ==============================================
+    plt.figure(figsize=(10, 8))
+    
+    plt.plot(prawdziwe_referencje[:, 0], prawdziwe_referencje[:, 1], 
+             label="Prawdziwa trasa (Referencja)", color="black", linewidth=2.5, zorder=3)
+    
+    plt.scatter(bazowe_uwb[:, 0], bazowe_uwb[:, 1], 
+                label="Surowy pomiar UWB (Brak filtra)", color="red", alpha=0.4, s=15, zorder=1)
+    
+    plt.scatter(przewidywania_test_raw[:, 0], przewidywania_test_raw[:, 1], 
+                label="Korekta Siecią Neuronową", color="green", alpha=0.6, s=15, zorder=2)
+
+    plt.title("Odtworzenie trasy robota (Dane Dynamiczne)")
+    plt.xlabel("Współrzędna X")
+    plt.ylabel("Współrzędna Y")
+    plt.legend()
+    plt.grid(True)
+    
+    plt.axis("equal") 
+
+    # ==============================================
+    # EKSPORT WAG 
+    # ==============================================
+    with open(f"wagi_sieci_sala_{wybor}.txt", "w") as f:
+        f.write(f"=== MACIERZE WAG I BIASOW SIECI NEURONOWEJ (SALA {wybor}) ===\n")
+        
+        f.write(f"1. WARSTWA WEJSCIOWA -> UKRYTA 1 (W1 - rozmiar {model.W1.shape}):\n")
+        np.savetxt(f, model.W1, fmt="%.4f")
+        f.write("\nBiasy warstwy 1 (b1):\n")
+        np.savetxt(f, model.b1, fmt="%.4f")
+        
+        f.write(f"\n{'='*50}\n\n")
+        f.write(f"2. WARSTWA UKRYTA 1 -> UKRYTA 2 (W2 - rozmiar {model.W2.shape}):\n")
+        np.savetxt(f, model.W2, fmt="%.4f")
+        f.write("\nBiasy warstwy 2 (b2):\n")
+        np.savetxt(f, model.b2, fmt="%.4f")
+        
+        f.write(f"\n{'='*50}\n\n")
+        f.write(f"3. WARSTWA UKRYTA 2 -> WYJSCIOWA (W3 - rozmiar {model.W3.shape}):\n")
+        np.savetxt(f, model.W3, fmt="%.4f")
+        f.write("\nBiasy warstwy 3 (b3):\n")
+        np.savetxt(f, model.b3, fmt="%.4f")
+        
+    print(f"Pomyślnie zapisano plik 'wagi_sieci_sala_{wybor}.txt'!")
+
     plt.show()
 
 if __name__ == "__main__":

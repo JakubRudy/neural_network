@@ -19,21 +19,15 @@ def create_time_windows(X_data, y_data, window_size):
         y_windows.append(y_data[i+window_size])
     return np.array(X_windows), np.array(y_windows)
 
-# ===============================================
-# NORMALIZACJA (Zabezpieczona przed eksplozją!)
-# ===============================================
 def scale_data(X_train, X_test):
     mean = np.mean(X_train, axis=0)
     std = np.std(X_train, axis=0)
     
-    # KRYTYCZNE: Ochrona przed mikroskopijnym szumem! 
-    # Wszystkie odchylenia poniżej 0.1 traktujemy jako 1.0
     std[std < 0.1] = 1.0 
     
     X_train_scaled = (X_train - mean) / std
     X_test_scaled = (X_test - mean) / std
     
-    # KRYTYCZNE 2: Obcięcie ekstremów, by dynamiczny test nie zaszokował sieci
     X_train_scaled = np.clip(X_train_scaled, -5.0, 5.0)
     X_test_scaled = np.clip(X_test_scaled, -5.0, 5.0)
     
@@ -45,7 +39,6 @@ def usun_grube_bledy(df, kolumny):
         df_clean[col] = pd.to_numeric(df_clean[col], errors='coerce')
         skok = df_clean[col].diff().abs()
         
-        # Zabezpieczenie na statycznych danych - wymuszamy próg min 20 jednostek
         prog = max(skok.mean() + 4 * skok.std(), 20.0)
         maska_bledow = skok > prog
         df_clean.loc[maska_bledow, col] = np.nan
